@@ -1,19 +1,29 @@
 import pytest
 
-from agent.services.amadeus import FlightOffer
 from agent.tools import amadeus
-from agent.utils import camel_to_snake_key_recursive
+from agent.services.amadeus import Passengers
 
 
 @pytest.mark.skip("Disabled to reduce API usage.")
-def _test_amadeus():
-    response = amadeus.list_airline_destinations("LX")
-    response = amadeus.list_direct_destinations("ZRH")
+def test_list_airline_destinations():
+    result = amadeus.list_airline_destinations("LX")
+    assert len(result.root) > 0
 
 
-@pytest.mark.skip()
-def test_amadeus():
-    # Broken
-    # response = amadeus.list_cheapest_flight_dates("NYC", "MAD")
-    response = amadeus.list_cheapest_flights_for_journey()
-    breakpoint()
+@pytest.mark.skip("Disabled to reduce API usage.")
+def test_list_direct_destinations():
+    result = amadeus.list_direct_destinations("ZRH")
+    assert len(result.root) > 0
+
+
+@pytest.mark.skip("Disabled to reduce API usage.")
+def test_list_cheapest_flights():
+    response = amadeus.list_cheapest_flights_for_journey(
+        origin="ZRH",
+        destination="MAD",
+        date="2025-10-04",
+        passengers=Passengers(adults=2),
+        non_stop=True,
+    )
+    assert len(response.root) > 0
+

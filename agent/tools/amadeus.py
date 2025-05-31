@@ -2,8 +2,13 @@ import contextlib
 
 import fastmcp
 
-from agent.services.amadeus import AmadeusService, DestinationsRoot, FlightOffersRoot
-from agent.types import AirlineCode, IATACode
+from agent.services.amadeus import (
+    AmadeusService,
+    DestinationsRoot,
+    FlightOffersRoot,
+    Passengers,
+)
+from agent.types import AirlineCode, IATACode, ISOLocalTime, TravelClass
 
 # Keep a global instance to prevent having to reinstantiate.
 _instance = AmadeusService()
@@ -70,7 +75,12 @@ def list_cheapest_flight_dates(origin: IATACode, destination: IATACode):
 
 
 def list_cheapest_flights_for_journey(
-    origin: IATACode, destination: IATACode, date: str, adults: int
+    origin: IATACode,
+    destination: IATACode,
+    date: ISOLocalTime,
+    passengers: Passengers,
+    travel_class: TravelClass = "ECONOMY",
+    non_stop: bool = False,
 ) -> FlightOffersRoot:
     """Get the cheapest flights on a given journey.
 
@@ -78,7 +88,9 @@ def list_cheapest_flights_for_journey(
         origin: The city/airport IATA code from which the flight will depart.
         destination: The city/airport IATA code to which the flight is going.
         date: The date on which to fly out, in `YYYY-MM-DD` format.
-        adults: The number of adult passengers with age 12 or older.
+        passengers: Composition of passengers for journey.
+        travel_class: Travel class for all passengers. Default: ECONOMY.
+        non_stop: Whether to only find direct flights. Default: False.
 
     Returns:
         FlightOffersRoot describing all cheapest journies for criteria.
@@ -89,11 +101,9 @@ def list_cheapest_flights_for_journey(
             destination=destination,
             departure_date=date,
             return_date=None,
-            adults=adults,
-            # Custom params
-            travel_class="ECONOMY",
-            non_stop=True,
-            currency="CHF",
+            passengers=passengers,
+            travel_class=travel_class,
+            non_stop=non_stop,
         )
 
 

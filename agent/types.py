@@ -47,3 +47,13 @@ Currency = Annotated[
     str,
     Field(description="ISO 4217 national currency code.", min_length=3, max_length=3),
 ]
+
+AirportName = Annotated[str, "Name of airport."]
+Municipality = Annotated[str, "Local municipality this location resides in."]
+
+
+class Airport(BaseModel):
+    name: AirportName
+    iso_country: ISOCountyCode
+    municipality: Municipality
+    iata_code: IATACode

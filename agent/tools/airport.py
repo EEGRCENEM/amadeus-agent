@@ -2,8 +2,8 @@ import contextlib
 
 import fastmcp
 
-from agent.services.airport import Airport, AirportService
-from agent.types import IATACode, ISOCountyCode
+from agent.services.airport import AirportService
+from agent.types import IATACode, ISOCountyCode, Airport
 
 
 @contextlib.contextmanager

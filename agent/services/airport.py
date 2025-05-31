@@ -1,22 +1,9 @@
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Annotated
 
 import pandas as pd
-from pydantic import BaseModel
 
-from agent.types import ISOCountyCode, IATACode
-
-
-AirportName = Annotated[str, "Name of airport."]
-Municipality = Annotated[str, "Local municipality this location resides in."]
-
-
-class Airport(BaseModel):
-    name: AirportName
-    iso_country: ISOCountyCode
-    municipality: Municipality
-    iata_code: IATACode
+from agent.types import ISOCountyCode, IATACode, Airport
 
 
 class AirportService:

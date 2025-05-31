@@ -1,10 +1,8 @@
 from __future__ import annotations
 import os
-from datetime import datetime, timedelta
 from typing import Annotated, Any, Literal
 
 from amadeus import Client, Response
-import dotenv
 from pydantic import BaseModel, Field
 
 from agent.types import (
@@ -19,10 +17,12 @@ from agent.types import (
 )
 from agent.utils import camel_to_snake_key_recursive
 
-# TODO: Store this somewhere else
-dotenv.load_dotenv()
 
-HTTPMethod = Literal["GET", "POST", "DELETE"]
+
+class Passengers(BaseModel):
+    adults: int
+    children: int | None = None
+    infants: int | None = None
 
 
 class Destination(BaseModel):
@@ -129,64 +129,51 @@ class FlightOffersRoot(BaseModel):
     root: list[FlightOffer]
 
 
-class APIThrottleException(Exception):
-    """Raised when too many requests are called in a short amount of time."""
-
-
-class NaiveRateLimiter:
-    def __init__(self):
-        self._last_request_time: datetime | None = None
-
-    def __enter__(self) -> None:
-        request_time = datetime.now()
-
-        if self._last_request_time is not None and (
-            request_time - self._last_request_time
-        ) < timedelta(seconds=30):
-            self._last_request_time = request_time
-            raise APIThrottleException
-        else:
-            self._last_request_time = request_time
-
-    def __exit__(self, *arg, **kwargs):
-        return None
-
-
 class AmadeusService(Client):
     def __init__(self):
         super().__init__(
-            hostname="test",
+            hostname=os.environ.get("AMADEUS_ENV"),
             client_id=os.environ.get("AMADEUS_KEY"),
             client_secret=os.environ.get("AMADEUS_SECRET"),
         )
-        self._rate_limiter = NaiveRateLimiter()
 
-    def request(self, verb: HTTPMethod, path: str, params: dict[str, Any]) -> Response:
-        """Override service requests to prevent sending too many requests."""
-        params = {key: value for key, value in params.items() if value is not None}
+    def request(
+        self, verb: Literal["GET", "POST", "DELETE"], path: str, params: dict[str, Any]
+    ) -> Response:
+        """Override service requests with custom logic."""
 
-        with self._rate_limiter:
-            return super().request(verb=verb, path=path, params=params)
+        def convert_value(value: Any) -> Any:
+            # API expects booleans as JSON-compatible strings.
+            if value in (True, False):
+                return str(value).lower()
+            return value
+
+        params = {
+            key: convert_value(value)
+            for key, value in params.items()
+            if value is not None
+        }
+
+        response = super().request(verb=verb, path=path, params=params)
+        response.data = camel_to_snake_key_recursive(response.data)
+
+        return response
 
     def list_direct_destinations(self, origin: IATACode) -> DestinationsRoot:
-        response = camel_to_snake_key_recursive(
-            self.airport.direct_destinations.get(departureAirportCode=origin).data
-        )
-        return DestinationsRoot.model_validate({"root": response})
+        response = self.airport.direct_destinations.get(departureAirportCode=origin)
+        return DestinationsRoot.model_validate({"root": response.data})
 
     def list_airline_destinations(self, airline: AirlineCode) -> DestinationsRoot:
-        response = camel_to_snake_key_recursive(
-            self.airline.destinations.get(airlineCode=airline).data
-        )
-        return DestinationsRoot.model_validate({"root": response})
+        response = self.airline.destinations.get(airlineCode=airline)
+        return DestinationsRoot.model_validate({"root": response.data})
 
     def get_flight_order(self, order_id: str):
-        return camel_to_snake_key_recursive(self.booking.flight_order(order_id).get())
+        return (self.booking.flight_order(order_id).get()).data
 
     def list_cheapest_flight_dates(self, origin: IATACode, destination: IATACode):
-        return camel_to_snake_key_recursive(
-            self.shopping.flight_dates.get(origin=origin, destination=destination).data
-        )
+        return self.shopping.flight_dates.get(
+            origin=origin, destination=destination
+        ).data
 
     def list_cheapest_flights_for_journey(
         self,
@@ -195,31 +182,28 @@ class AmadeusService(Client):
         destination: IATACode,
         departure_date: ISOLocalTime,
         return_date: ISOLocalTime | None,
-        adults: int,
-        children: int | None = None,
-        infants: int | None = None,
+        passengers: Passengers,
         travel_class: TravelClass | None = None,
         included_airline_codes: tuple[AirlineCode, ...] | None = None,
         non_stop: bool = False,
         currency: Currency | None = None,
         max_price: int | None = None,
     ) -> FlightOffersRoot:
-        response = camel_to_snake_key_recursive(
-            self.shopping.flight_offers_search.get(
-                originLocationCode=origin,
-                destinationLocationCode=destination,
-                departureDate=departure_date,
-                returnDate=return_date,
-                adults=str(adults),
-                children=str(children) if children else None,
-                infants=str(infants) if infants else None,
-                travelClass=travel_class,
-                currencyCode=currency,
-                includedAirlineCodes=",".join(included_airline_codes)
-                if included_airline_codes
-                else None,
-                nonStop=non_stop,
-                maxPrice=max_price,
-            ).data
+        response = self.shopping.flight_offers_search.get(
+            originLocationCode=origin,
+            destinationLocationCode=destination,
+            departureDate=departure_date,
+            returnDate=return_date,
+            adults=passengers.adults,
+            children=passengers.children,
+            infants=passengers.infants,
+            travelClass=travel_class,
+            currencyCode=currency or os.environ.get("AMADEUS_CURRENCY"),
+            includedAirlineCodes=",".join(included_airline_codes)
+            if included_airline_codes
+            else None,
+            nonStop=non_stop,
+            maxPrice=max_price,
         )
-        return FlightOffersRoot.model_validate({"root": response})
+
+        return FlightOffersRoot.model_validate({"root": response.data})

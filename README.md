@@ -1,5 +1,7 @@
 # Travel agent
 
+![Example](https://raw.githubusercontent.com/EEGRCENEM/amadeus-agent/refs/heads/main/assets/claude-example.png)
+
 A simple proof-of-concept MCP server for Amadeus enabling LLM-based agents to use Amadeus as a tool.
 The server provides tools for LLMs to directly query live flight booking information around the world,
 including:
@@ -47,6 +49,7 @@ Once installed you will need to provide Amadeus-for-develops credentials in a `.
 The [Amadeus developer pages shows you how to acquire such a key](https://developers.amadeus.com/get-started/get-started-with-self-service-apis-335). Once you have the key and secret, but them in a `.env` file like so:
 
 ```bash
+AMADEUS_ENV="test"
 AMADEUS_KEY=<YOUR-KEY>
 AMADEUS_SECRET=<YOUR-SECRET>
 ```
@@ -81,4 +84,8 @@ Desktop developer panel and edit your claude_desktop_config.json to start the se
 ```
 
 Then restart Claude Desktop start a new conversation. Before writing select the AmadeusServer from the configuration panel
-below the text input. Claude should now discover your tools and use them to solve your tasks.
+below the text input.
+
+![Tool panel](https://raw.githubusercontent.com/EEGRCENEM/amadeus-agent/refs/heads/main/assets/tools.png)
+
+Claude should now discover your tools and use them to solve your tasks.
