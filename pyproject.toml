@@ -1,0 +1,19 @@
+[project]
+name = "agent"
+version = "0.1.0"
+description = "MCP server for Amadeus"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "amadeus>=12.0.0",
+    "dotenv>=0.9.9",
+    "fastmcp>=2.5.1",
+    "ruff>=0.11.12",
+]
+
+[dependency-groups]
+dev = [
+    "ipython>=9.2.0",
+    "pandas>=2.2.3",
+    "pytest>=8.3.5",
+]
